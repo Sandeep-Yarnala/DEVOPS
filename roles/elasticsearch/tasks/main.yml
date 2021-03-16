@@ -1,0 +1,11 @@
+---
+- name: elasticsearch installation 
+  hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: register the elastic PGP key
+      command: rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+    - name: Install from es_repo
+      command: rpm -ivh elasticsearch-7.9.2-x86_64.rpm

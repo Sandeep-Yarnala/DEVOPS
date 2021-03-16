@@ -1,0 +1,64 @@
+---
+- name: Configure Elasticsearch 6 or below.
+  template:
+    src: "{{ item | basename }}.j2"
+    dest: "{{ item }}"
+    owner: root
+    group: elasticsearch
+    mode: 0660
+  with_items:
+    - /etc/elasticsearch/elasticsearch.yml
+    - /etc/elasticsearch/jvm.options
+  notify: restart elasticsearch
+  when: elasticsearch_version[0] | int < 7
+
+- name: Configure Elasticsearch 7+.
+  template:
+    src: "{{ item | basename }}.j2"
+    dest: "{{ item }}"
+    owner: root
+    group: elasticsearch
+    mode: 0660
+  with_items:
+    - /etc/elasticsearch/elasticsearch.yml
+    - /etc/elasticsearch/jvm.options.d/heap.options
+  notify: restart elasticsearch
+  when: elasticsearch_version[0] | int >= 7
+
+- name: Force a restart if configuration has changed.
+  meta: flush_handlers
+
+- name: Start Elasticsearch.
+  service:
+    name: elasticsearch
+    state: "{{ elasticsearch_service_state }}"
+    enabled: "{{ elasticsearch_service_enabled }}"
+
+- name: Make sure Elasticsearch is running before proceeding.
+  wait_for:
+    host: "{{ elasticsearch_network_host }}"
+    port: "{{ elasticsearch_http_port }}"
+    delay: 3
+    timeout: 300
+
+# Update Elasticsearch config file to allow access (to secure Elasticsearch, bind to 'localhost').
+
+- name: Updating the config file to allow outside access
+  lineinfile:
+    destfile: /etc/elasticsearch/elasticsearch.yml
+    regexp: 'network.host:'
+    line: 'network.host: 0.0.0.0'
+
+# Update Elasticsearch port in config file
+
+- name: Updating the port in config file
+  lineinfile:
+    destfile: /etc/elasticsearch/elasticsearch.yml
+    regexp: 'http.port:'
+    line: 'http.port: 9200'
+
+# Start Elasticsearch
+- name: Starting Elasticsearch
+  service:
+    name: elasticsearch
+    state: started

@@ -1,0 +1,10 @@
+---
+- name: set fact allow_downgrade to yes
+  set_fact: allow_downgrade=yes
+  when: elasticsearch_allow_downgrade
+
+- name: remove Elasticsearch GPG key.
+  dest: /etc/yum.repos.d/elasticsearch.repo
+  with_items:
+    - /etc/elasticsearch/elasticsearch.yml
+    - /etc/elasticsearch/jvm.options
